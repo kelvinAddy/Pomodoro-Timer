@@ -1,22 +1,30 @@
 # Written by Kelvin Addy
 
 # Imports the required modules
-import sys, os
+import sys, os, time
+from ctypes import windll
+
 from PyQt6.QtWidgets import (QApplication, QWidget, QGroupBox, QSpinBox, QLCDNumber, QLabel,
-                              QPushButton, QTabWidget, QVBoxLayout, QHBoxLayout, QComboBox)
+                              QPushButton, QTabWidget, QVBoxLayout, QHBoxLayout, QComboBox, QSplashScreen)
 from PyQt6.QtCore import QTimer, QSize, Qt
 from PyQt6.QtGui import QPixmap, QIcon
 
 MODES = ("Study", "Break")
 BASEDIR = os.path.dirname(__file__)
+
 STUDY_TIME = 1500000
 BREAK_TIME = 300000
+
+ 
+myappid = "PomodoroTimer200207"
+windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+
+
 class Pomodoro(QWidget):
 
     def __init__(self):
         super().__init__()
         self.initializeUI()
-
     
     def initializeUI(self):
         """Sets up the pomodoro window"""
@@ -29,6 +37,7 @@ class Pomodoro(QWidget):
         """Creates and arranges widgets in the pomdoro widget"""
         self.study_time = STUDY_TIME
         self.break_time = BREAK_TIME
+
         self.currrent_time = self.study_time
         remaining_time = self.convertTotalTime(self.currrent_time)
         
@@ -53,16 +62,19 @@ class Pomodoro(QWidget):
         # Home tab of the pomodro timer
         home_tab = QWidget()
         self.start_button = QPushButton()
+        self.start_button.setToolTip("Start Countdown")
         self.start_button.setIcon(QIcon(os.path.join(BASEDIR, "images/play.png")))
         self.start_button.setIconSize(QSize(50,50))
         self.start_button.clicked.connect(self.startCountDown)
 
         self.pause_button = QPushButton()
+        self.pause_button.setToolTip("Pause Countdown")
         self.pause_button.setIcon(QIcon(os.path.join(BASEDIR, "images/pause-button.png")))
         self.pause_button.setIconSize(QSize(50,50))
         self.pause_button.clicked.connect(self.stopCountDown)
         
         self.reset_button = QPushButton()
+        self.reset_button.setToolTip("Reset Countdown")
         self.reset_button.setIcon(QIcon(os.path.join(BASEDIR, "images/undo.png")))
         self.reset_button.setIconSize(QSize(50,50))
         self.reset_button.clicked.connect(self.resetCountDown)
@@ -127,7 +139,7 @@ class Pomodoro(QWidget):
         if remaining_time == "00:00":
             self.resetCountDown()
         else:
-            self.timer.start(10)
+            self.timer.start(1000)
     
     def stopCountDown(self):
         """Stops the countdown"""
@@ -194,7 +206,11 @@ if __name__ == "__main__":
     window = QApplication(sys.argv)
     window.setWindowIcon(QIcon(os.path.join(BASEDIR, "images/pomodoro 2.png")))
     window.setStyle("Fusion")
+    splash = QSplashScreen(QPixmap(os.path.join(BASEDIR, "images/pomodoro 2.png")))
+    splash.show()
+    time.sleep(1)
     app = Pomodoro()
+    splash.finish(app)
     sys.exit(window.exec())
 
 
