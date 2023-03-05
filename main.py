@@ -8,10 +8,9 @@ from PyQt6.QtCore import QTimer, QSize, Qt
 from PyQt6.QtGui import QPixmap, QIcon
 
 MODES = ("Study", "Break")
+BASEDIR = os.path.dirname(__file__)
 STUDY_TIME = 1500000
 BREAK_TIME = 300000
-BASEDIR = os.path.dirname(__file__)
-
 class Pomodoro(QWidget):
 
     def __init__(self):
@@ -29,15 +28,16 @@ class Pomodoro(QWidget):
     def setUpMainWindow(self):
         """Creates and arranges widgets in the pomdoro widget"""
         self.study_time = STUDY_TIME
-        self.break_time = BREAK_TIME   
+        self.break_time = BREAK_TIME
         self.currrent_time = self.study_time
-
+        remaining_time = self.convertTotalTime(self.currrent_time)
+        
         self.timer = QTimer()
         self.timer.timeout.connect(self.updateTimer)
 
         self.lcd_widget = QLCDNumber()
         self.lcd_widget.setFixedSize(450,250)
-        self.lcd_widget.display("25:00")
+        self.lcd_widget.display(remaining_time)
         self.lcd_widget.setStyleSheet("color: red")
 
         self.current_mode = QLabel("Current Mode: Study")
@@ -70,7 +70,6 @@ class Pomodoro(QWidget):
         mode_groupbox = QGroupBox("Mode")
         self.mode_combobox = QComboBox()
         self.mode_combobox.addItems(MODES)
-        self.mode_combobox.currentTextChanged.connect(lambda text: self.current_mode.setText(f"Current Mode: {text}"))
         self.mode_combobox.currentTextChanged.connect(self.changeMode)
 
         mode_layout = QVBoxLayout()
@@ -97,6 +96,9 @@ class Pomodoro(QWidget):
         self.study_settings.setRange(25,59)
         self.study_settings.setSuffix(" minutes")
 
+        self.study_time_settings = self.study_settings.value() * 60 * 1000
+        self.break_time_settings = self.break_settings.value() * 60 * 1000
+
         self.apply_settings = QPushButton("Apply")
         self.apply_settings.clicked.connect(self.applySettings)
 
@@ -121,11 +123,11 @@ class Pomodoro(QWidget):
         """Starts the countdown"""
         self.start_button.setDisabled(True)
         self.mode_combobox.setDisabled(True)
-        current_time = self.convertTotalTime(self.study_time)
-        if current_time == "00:00":
+        remaining_time = self.convertTotalTime(self.currrent_time)
+        if remaining_time == "00:00":
             self.resetCountDown()
         else:
-            self.timer.start(1000)
+            self.timer.start(10)
     
     def stopCountDown(self):
         """Stops the countdown"""
@@ -136,54 +138,39 @@ class Pomodoro(QWidget):
     
     def resetCountDown(self):
         """Resets the countdown"""
-        current_time = self.convertTotalTime(STUDY_TIME)
+        self.checkMode()   
         self.stopCountDown()
-        self.lcd_widget.display(current_time)
-        self.study_time = STUDY_TIME
 
     def updateTimer(self):
         """Updates the timer"""
-        current_time = self.convertTotalTime(self.study_time)
+        remaining_time = self.convertTotalTime(self.currrent_time)
 
-        if current_time == "00:00":
+        if remaining_time == "00:00":
             self.resetCountDown()
         else:
-            self.lcd_widget.display(current_time)
-            self.study_time -= 1000
+            self.lcd_widget.display(remaining_time)
+            self.currrent_time -= 1000
 
     def changeMode(self, text):
         """Changes the current mode and displays the time for that mode"""
-        global STUDY_TIME
         if text == "Study":
-
-            current_time = self.convertTotalTime(self.study_time)
-            self.lcd_widget.display(current_time)
+            self.currrent_time = self.study_time
+            remaining_time = self.convertTotalTime(self.currrent_time)
 
         elif text == "Break":
-            current_time = self.convertTotalTime(self.break_time)
-            self.study_time = self.break_time
-            STUDY_TIME = BREAK_TIME
-            self.lcd_widget.display(current_time)
+            self.currrent_time = self.break_time
+            remaining_time = self.convertTotalTime(self.currrent_time)
+        
+        self.lcd_widget.display(remaining_time)
+
+        self.current_mode.setText(f"Current Mode: {text}")
 
     def applySettings(self):
         """Applies the time settings to the countdown"""
-        self.study_time = self.study_settings.value() * 60 * 1000
-        self.break_time = self.break_settings.value() * 60 * 1000
-
-        if self.mode_combobox.currentText() == "Study":
-            current_time = self.convertTotalTime(self.study_time)
-            self.lcd_widget.display(current_time)
-
-        elif self.mode_combobox.currentText() == "Break":
-            current_time = self.convertTotalTime(self.break_time)
-            self.study_time = self.break_time
-            self.lcd_widget.display(current_time)
-
-    def checkMode(self):
-        if self.mode_combobox.currentTextChanged() == "Study":
-            self.currrent_time = self.study_time
-        elif self.mode_combobox.currentTextChanged() == "Break":
-            self.current_mode = self.break_time
+        self.study_time_settings = self.study_settings.value() * 60 * 1000
+        self.break_time_settings = self.break_settings.value() * 60 * 1000
+        self.checkMode()
+                
 
     def convertTotalTime(self, time_in_milli):
         """Calculate the time that should be displayed in the QLCDNumber widget."""
@@ -191,6 +178,17 @@ class Pomodoro(QWidget):
         seconds = int((time_in_milli / 1000) % 60)
         amount_of_time = "{:02d}:{:02d}".format(minutes, seconds)
         return amount_of_time
+    
+    def checkMode(self):
+        """Checks the mode and changes the time accordinly"""
+        if self.mode_combobox.currentText() == "Study":
+            self.currrent_time = self.study_time_settings
+            remaining_time = self.convertTotalTime(self.currrent_time)
+    
+        elif self.mode_combobox.currentText() == "Break":
+            self.currrent_time = self.break_time_settings
+            remaining_time = self.convertTotalTime(self.currrent_time)
+        self.lcd_widget.display(remaining_time)
 
 if __name__ == "__main__":
     window = QApplication(sys.argv)
